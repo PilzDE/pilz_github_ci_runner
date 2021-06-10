@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pilz_github_ci_runner</name>
+  <version>0.1.0</version>
+  <description>Automatically find PullRequests on GitHub that are supposed to be tested and test them with ros-industrial-ci and real hardware.</description>
+
+  <maintainer email="a.gutenkunst@pilz.de">Alexander Gutenkunst</maintainer>
+  <maintainer email="c.doehn@pilz.de">Christian Döhn</maintainer>
+  <maintainer email="c.henkel@pilz.de">Christian Henkel</maintainer>
+  <maintainer email="i.martini@pilz.de">Immanuel Martini</maintainer>
+  <maintainer email="r.feistenauer@pilz.de">Richard Feistenauer</maintainer>
+
+  <license>LGPLv3</license>
+
+  <url type="bugtracker">https://github.com/PilzDE/pilz_testutils/issues</url>
+  <url type="repository">https://github.com/PilzDE/pilz_testutils</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>python-github-pip</exec_depend>
+</package>
