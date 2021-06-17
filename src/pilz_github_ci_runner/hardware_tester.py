@@ -59,10 +59,12 @@ class HardwareTester(object):
                     "git checkout FETCH_HEAD", cwd=repo_dir)
                 result = run_tests(
                     repo_dir, self._docker_opts, self._cmake_args, self._apt_proxy)
+
         end_text = "Finished test of %s: %s" % (
-            pr.head.sha, "SUCCESSFULL" if not result else "WITH %s FAILURES" % result)
+            pr.head.sha, "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"])
         print(end_text)
-        pr.create_issue_comment(end_text)
+
+        pr.create_issue_comment("%s\n<details>\n<summary>Output</summary>\n\n```\n%s\n```" % (end_text, result["output"]))
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
 
@@ -71,15 +73,18 @@ def run_command(command, **kwargs):
     print("\n%s\nExecuting: %s\n" % (">"*50, command))
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, shell=True, **kwargs)
+    full_output = ""
     while True:
         output = process.stdout.readline().decode()
         if output == '' and process.poll() is not None:
             break
         if output:
+            full_output += output
             print(output.strip())
-    rc = process.poll()
+
+    return_code = process.poll()
     print("<"*50)
-    return rc
+    return {"return_code": return_code, "output": full_output}
 
 
 def run_tests(dir, docker_opts, cmake_args, apt_proxy):
