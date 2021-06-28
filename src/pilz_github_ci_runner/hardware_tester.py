@@ -29,15 +29,10 @@ class HardwareTester(object):
         super().__init__(*args, **kwargs)
         self._token = token
         self._log_dir = log_dir
-        self._env = self._create_ci_env(ci_args)
+        self._env = gather_ci_environment_variables(ci_args)
+        print("CI Environment:", self._env)
         self._setup_cmd = setup_cmd
         self._cleanup_cmd = cleanup_cmd
-
-    def _create_ci_env(self, ci_args):
-        relevant_env = {k: os.environ.get(k) for k in KEYS if k in os.environ}
-        relevant_env.update(ci_args)
-        print("CI Environment:", relevant_env)
-        return relevant_env
 
     def check_prs(self, prs_to_check):
         for pr in prs_to_check:
@@ -75,6 +70,16 @@ class HardwareTester(object):
             "%s\n<details>\n<summary>Output</summary>\n\n```\n%s\n```" % (end_text, result["output"]))
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
+
+
+def gather_ci_environment_variables(ci_args):
+    relevant_env = _read_selected_variables_from_os_envirement(KEYS)
+    relevant_env.update(ci_args)
+    return relevant_env
+
+
+def _read_selected_variables_from_os_envirement(selected_keys) -> dict:
+    return {k: os.environ.get(k) for k in selected_keys if k in os.environ}
 
 
 def run_command(command, **kwargs):
