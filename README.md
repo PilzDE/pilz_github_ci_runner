@@ -12,11 +12,11 @@ In order to run the script you need:
 For example the tests running on https://github.com/PilzDE/psen_scan_v2 use:
 ```
 rosrun pilz_github_ci_runner test_repository.py "PilzDE/psen_scan_v2" \
-rfeistenauer agutenkunst \
---apt_proxy=http://172.20.20.104:3142 \
---docker_opts="-v /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro --env HOST_IP=192.168.0.122 --env SENSOR_IP=192.168.0.100" \
+"rfeistenauer agutenkunst" \
 --setup_cmd="usbrelay 1_1=0; sleep 2; usbrelay 1_1=1" --cleanup_cmd="usbrelay 1_1=0" \
---cmake-args="DENABLE_HARDWARE_TESTING=ON"
+CMAKE_ARGS="DENABLE_HARDWARE_TESTING=ON"
+APT_PROXY=http://172.20.20.104:3142 \
+DOCKER_RUN_OPTS="-v /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro --env HOST_IP=192.168.0.122 --env SENSOR_IP=192.168.0.100" \
 ```
 For continuous running add a `--loop_time=<seconds_for_refresh>`
 

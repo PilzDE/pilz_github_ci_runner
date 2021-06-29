@@ -18,24 +18,20 @@
 """Automated Hardware Testing
 
 Usage:
-    pilz_github_ci_runner.py REPO ALLOWED_USERS ...
+    pilz_github_ci_runner.py REPO ALLOWED_USERS [CI_ARGS ...]
         [--log=LOG_DIR]
-        [--docker_opts=DOCKER_OPTS]
-        [--apt_proxy=APT_PROXY]
-        [--cmake_args=CMAKE_ARGS]
         [--setup_cmd=SETUP_CMD]
         [--cleanup_cmd=SETUP_CMD]
         [--loop_time=MIN_TIME_IN_SEC]
     pilz_github_ci_runner.py set-token
 
-   e.g. pilz_github_ci_runner.py max/awesome_repo max theOtherOne AwesomeGuy
+   Arguments for the CI can either be set as environment variables or passed as arguments.
+   e.g. APT_PROXY=192.168.0.1 pilz_github_ci_runner.py "max/awesome_repo max theOtherOne AwesomeGuy"
+   or   pilz_github_ci_runner.py max/awesome_repo "max theOtherOne" APT_PROXY=192.168.0.1 ROS_DISTRO=noetic
 
 Options:
     -h --help                    Show this
     --log=LOG_DIR                Test log directory [default: ~/.ros/hardware_tests/]
-    --docker_opts=DOCKER_OPTS    Options that will be passed to the industrial ci
-    --cmake_args=CMAKE_ARGS      Arguments that will be passed to the cmake run
-    --apt_proxy=APT_PROXY
     --setup_cmd=SETUP_CMD        Command to run before starting industrial_ci e.g. for starting hardware
     --cleanup_cmd=CLEANUP_CMD    Command to run after industrial_ci has finished e.g. for stopping hardware
     --loop_time=MIN_TIME_IN_SEC  If set automatically searches valid pull requests and executes the tests continuosly.
@@ -49,6 +45,7 @@ from pilz_github_ci_runner.print_redirector import PrintRedirector
 import os
 import sys
 import time
+import shlex
 import docopt
 import github
 import contextlib
@@ -95,6 +92,15 @@ def check_and_execute_loop(loop_time):
             time.sleep(remain)
 
 
+def parse_ci_args(cias):
+    ci_env = {}
+    for a in cias:
+        with contextlib.suppress(ValueError):
+            key, value = a.split("=", maxsplit=1)
+            ci_env[key] = value
+    return ci_env
+
+
 if __name__ == "__main__":
     arguments = docopt.docopt(__doc__)
     print(arguments, "\n")
@@ -113,19 +119,17 @@ if __name__ == "__main__":
     except UnknownObjectException:
         print("Repository not found! Please check the spelling of the REPO argument")
         exit(1)
+
+    allowed_users = shlex.split(arguments.get("ALLOWED_USERS"))
     log_dir = os.path.expanduser(arguments.get("--log"))
-    docker_opts = arguments.get("--docker_opts")
-    cmake_args = arguments.get("--cmake_args")
-    allowed_users = arguments.get("ALLOWED_USERS")
-    apt_proxy = arguments.get("--apt_proxy")
+    loop_time = arguments.get("--loop_time", None)
     setup_cmd = arguments.get("--setup_cmd")
     cleanup_cmd = arguments.get("--cleanup_cmd")
-    loop_time = arguments.get("--loop_time", None)
 
-    tester = HardwareTester(docker_opts=docker_opts,
-                            cmake_args=cmake_args,
+    ci_args = parse_ci_args(arguments.get("CI_ARGS"))
+
+    tester = HardwareTester(ci_args=ci_args,
                             token=token,
-                            apt_proxy=apt_proxy,
                             log_dir=log_dir,
                             setup_cmd=setup_cmd,
                             cleanup_cmd=cleanup_cmd)

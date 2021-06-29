@@ -21,14 +21,16 @@ import time
 import subprocess
 
 
+KEYS = ["ROS_DISTRO", "ROS_REPO", "DOCKER_RUN_OPTS", "APT_PROXY", "CMAKE_ARGS"]
+
+
 class HardwareTester(object):
-    def __init__(self, token, log_dir, cmake_args, docker_opts, apt_proxy, setup_cmd, cleanup_cmd, *args, **kwargs):
+    def __init__(self, token, log_dir, ci_args, setup_cmd, cleanup_cmd, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._token = token
         self._log_dir = log_dir
-        self._docker_opts = docker_opts
-        self._cmake_args = cmake_args
-        self._apt_proxy = apt_proxy
+        self._env = gather_ci_environment_variables(ci_args)
+        print("CI Environment:", self._env)
         self._setup_cmd = setup_cmd
         self._cleanup_cmd = cleanup_cmd
 
@@ -58,15 +60,26 @@ class HardwareTester(object):
                 run_command(
                     "git checkout FETCH_HEAD", cwd=repo_dir)
                 result = run_tests(
-                    repo_dir, self._docker_opts, self._cmake_args, self._apt_proxy)
+                    repo_dir, self._env)
 
         end_text = "Finished test of %s: %s" % (
             pr.head.sha, "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"])
         print(end_text)
 
-        pr.create_issue_comment("%s\n<details>\n<summary>Output</summary>\n\n```\n%s\n```" % (end_text, result["output"]))
+        pr.create_issue_comment(
+            "%s\n<details>\n<summary>Output</summary>\n\n```\n%s\n```" % (end_text, result["output"]))
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
+
+
+def gather_ci_environment_variables(ci_args):
+    relevant_env = _read_selected_variables_from_os_envirement(KEYS)
+    relevant_env.update(ci_args)
+    return relevant_env
+
+
+def _read_selected_variables_from_os_envirement(selected_keys) -> dict:
+    return {k: os.environ.get(k) for k in selected_keys if k in os.environ}
 
 
 def run_command(command, **kwargs):
@@ -87,17 +100,8 @@ def run_command(command, **kwargs):
     return {"return_code": return_code, "output": full_output}
 
 
-def run_tests(dir, docker_opts, cmake_args, apt_proxy):
-    env = os.environ.copy()
-    env['ROS_DISTRO'] = 'noetic'
-    env['ROS_REPO'] = 'main'
-    if docker_opts:
-        env['DOCKER_RUN_OPTS'] = docker_opts
-    if apt_proxy:
-        env['APT_PROXY'] = apt_proxy
-    if cmake_args:
-        env['CMAKE_ARGS'] = cmake_args
-
+def run_tests(dir, env):
+    print(env)
     # Needs sources ROS and path to industrial_ci
     command = 'rosrun industrial_ci run_ci'
     print('Running {}'.format(command))
