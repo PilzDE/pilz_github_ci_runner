@@ -21,12 +21,6 @@ import time
 import subprocess
 
 
-KEYS = ["ROS_DISTRO", "ROS_REPO", "DOCKER_RUN_OPTS", "APT_PROXY", "CMAKE_ARGS",
-        "ROS_MASTER_URI", "ROS_PYTHON_VERSION", "ROS_PACKAGE_PATH", "ROS_ROOT",
-        "ROS_VERSION", "ROS_ETC_DIR", "PYTHONPATH", "ROSLISP_PACKAGE_DIRECTORIES",
-        "PATH"]
-
-
 class HardwareTester(object):
     def __init__(self, token, log_dir, ci_args, setup_cmd, cleanup_cmd, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,14 +70,9 @@ class HardwareTester(object):
 
 
 def gather_ci_environment_variables(ci_args):
-    # relevant_env = _read_selected_variables_from_os_envirement(KEYS)
     relevant_env = os.environ.copy()
     relevant_env.update(ci_args)
     return relevant_env
-
-
-def _read_selected_variables_from_os_envirement(selected_keys) -> dict:
-    return {k: os.environ.get(k) for k in selected_keys if k in os.environ}
 
 
 def run_command(command, **kwargs):
