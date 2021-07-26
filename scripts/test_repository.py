@@ -20,9 +20,10 @@
 Usage:
     pilz_github_ci_runner.py REPO ALLOWED_USERS [CI_ARGS ...]
         [--log=LOG_DIR]
-        [--setup_cmd=SETUP_CMD]
-        [--cleanup_cmd=SETUP_CMD]
-        [--loop_time=MIN_TIME_IN_SEC]
+        [--setup-cmd=SETUP_CMD]
+        [--cleanup-cmd=SETUP_CMD]
+        [--loop-time=MIN_TIME_IN_SEC]
+        [--no-keyring]
     pilz_github_ci_runner.py set-token
 
    Arguments for the CI can either be set as environment variables or passed as arguments.
@@ -32,10 +33,11 @@ Usage:
 Options:
     -h --help                    Show this
     --log=LOG_DIR                Test log directory [default: ~/.ros/hardware_tests/]
-    --setup_cmd=SETUP_CMD        Command to run before starting industrial_ci e.g. for starting hardware
-    --cleanup_cmd=CLEANUP_CMD    Command to run after industrial_ci has finished e.g. for stopping hardware
-    --loop_time=MIN_TIME_IN_SEC  If set automatically searches valid pull requests and executes the tests continuosly.
+    --setup-cmd=SETUP_CMD        Command to run before starting industrial_ci e.g. for starting hardware
+    --cleanup-cmd=CLEANUP_CMD    Command to run after industrial_ci has finished e.g. for stopping hardware
+    --loop-time=MIN_TIME_IN_SEC  If set automatically searches valid pull requests and executes the tests continuosly.
                                  The argument provided is the minimum repeat time of the loop in seconds.
+    --no-keyring                 Will ask for the token directly, instead of using the keyring.
 """
 
 
@@ -111,7 +113,11 @@ if __name__ == "__main__":
         else:
             exit(0)
 
-    token = get_token()
+    if arguments.get('--no-keyring'):
+        token = getpass(prompt='personal access token:')
+    else:
+        token = get_token()
+
     try:
         gh = github.Github(token)
         test_bot_account = gh.get_user().login
@@ -122,9 +128,9 @@ if __name__ == "__main__":
 
     allowed_users = shlex.split(arguments.get("ALLOWED_USERS"))
     log_dir = os.path.expanduser(arguments.get("--log"))
-    loop_time = arguments.get("--loop_time", None)
-    setup_cmd = arguments.get("--setup_cmd")
-    cleanup_cmd = arguments.get("--cleanup_cmd")
+    loop_time = arguments.get("--loop-time", None)
+    setup_cmd = arguments.get("--setup-cmd")
+    cleanup_cmd = arguments.get("--cleanup-cmd")
 
     ci_args = parse_ci_args(arguments.get("CI_ARGS"))
 
