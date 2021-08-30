@@ -28,7 +28,6 @@ class HardwareTester(object):
         self._token = token
         self._log_dir = log_dir
         self._env = gather_ci_environment_variables(ci_args)
-        print("CI Environment:", self._env)
         self._setup_cmd = setup_cmd
         self._cleanup_cmd = cleanup_cmd
 
@@ -95,7 +94,6 @@ def run_command(command, **kwargs):
 
 
 def run_tests(dir, env):
-    print(env)
     # Needs sources ROS and path to industrial_ci
     command = 'rosrun industrial_ci run_ci'
     print('Running {}'.format(command))
