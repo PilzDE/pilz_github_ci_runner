@@ -14,9 +14,9 @@ For example the tests running on https://github.com/PilzDE/psen_scan_v2 use:
 rosrun pilz_github_ci_runner test_repository.py "PilzDE/psen_scan_v2" \
 "rfeistenauer agutenkunst" \
 --setup-cmd="usbrelay 1_1=0; sleep 2; usbrelay 1_1=1" --cleanup-cmd="usbrelay 1_1=0" \
-CMAKE_ARGS="DENABLE_HARDWARE_TESTING=ON"
+CMAKE_ARGS="-DENABLE_HARDWARE_TESTING=ON"
 APT_PROXY=http://172.20.20.104:3142 \
-DOCKER_RUN_OPTS="-v /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro --env HOST_IP=192.168.0.122 --env SENSOR_IP=192.168.0.100" \
+DOCKER_RUN_OPTS="-v /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro -p 55000-55020:55000-55020/udp -p 55116:55116/udp --env HOST_IP=192.168.0.122 --env SENSOR_IP=192.168.0.100" \
 ```
 For continuous running add a `--loop_time=<seconds_for_refresh>`
 
