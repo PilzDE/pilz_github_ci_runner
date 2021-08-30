@@ -15,6 +15,7 @@
 
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from github.PullRequest import PullRequest
 from .print_redirector import PrintRedirector
 import os
 import time
@@ -39,7 +40,7 @@ class HardwareTester(object):
         return "%s_%s.log" % (list(pr.get_commits())[-1].sha,
                               time.strftime("(%Y%b%d_%H:%M:%S)", time.localtime()))
 
-    def check_pr(self, pr):
+    def check_pr(self, pr: PullRequest):
         repo = pr.base.repo
         print("Starting test of PR #%s" % pr.number)
         pr.create_issue_comment("Starting a test for %s" % pr.head.sha)

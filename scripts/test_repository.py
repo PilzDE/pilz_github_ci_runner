@@ -86,8 +86,9 @@ def get_token():
 def check_and_execute_loop(loop_time):
     while True:
         start = time.time()
-        tester.check_prs(get_testable_pull_requests(
-            repo, allowed_users, test_bot_account))
+        for p in get_testable_pull_requests(repo, allowed_users, test_bot_account):
+            if p.head_is_untested:
+                tester.check_pr(p)
         end = time.time()
         remain = int(loop_time) - (end - start)
         if remain > 0:
