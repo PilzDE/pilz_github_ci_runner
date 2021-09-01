@@ -66,7 +66,11 @@ class HardwareTester(object):
 
         co = collapse_sections(result["output"])
         pr.create_issue_comment(
+<<<<<<< HEAD
             "%s\n%s" % (end_text, co))
+=======
+            "%s\n<details>\n<summary>Output</summary>\n\n%s\n" % (end_text, co))
+>>>>>>> Fixing collapse output
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
 
