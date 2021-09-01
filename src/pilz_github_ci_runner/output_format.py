@@ -26,7 +26,8 @@ def collapse_sections(output):
         elif "<" * 60 in line:
             collapsed_outout += "\n\n</details>\n\n"
         else:
-            line = line.replace("---", "\n\n```\n\n")
+            if line.startswith("---"):
+                line = line.replace("---", "\n\n```\n\n")
             collapsed_outout += line
             if in_title:
                 collapsed_outout += "</summary>\n\n"
