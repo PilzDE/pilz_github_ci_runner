@@ -64,9 +64,9 @@ class HardwareTester(object):
             pr.head.sha, "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"])
         print(end_text)
 
-        co = collapse_sections(clean_from_unknown_characters(result["output"]))
+        co = collapse_sections(result["output"])
         pr.create_issue_comment(
-            "%s\n<details>\n<summary>Output</summary>\n\n%s\n" % (end_text, co))
+            "%s\n%s" % (end_text, co))
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
 
