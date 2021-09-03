@@ -34,7 +34,7 @@ def create_summary_end_and_colorize_result(output):
 
 
 def create_code_blocks(output):
-    return re.sub(r'^---', "\n\n```\n\n", output)
+    return re.sub(r'\n---', "\n\n```\n\n", output)
 
 
 def crop_output_to_max_length(output):
