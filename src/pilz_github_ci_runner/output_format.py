@@ -30,6 +30,9 @@ def create_summary_end_and_colorize_result(output):
         if "returned with code '" in l:
             lines[i] = "```diff\n%s%s\n```\n" % (
                 "+" if "code '0'" in l else "-", l)
+        if "Summary: " in l and "package finished" not in l:
+            lines[i] = "```diff\n%s%s\n```\n" % (
+                "+" if "0 errors" in l and "0 failures" in l else "-", l)
     return "".join(lines)
 
 
