@@ -17,6 +17,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from github.PullRequest import PullRequest
 from .print_redirector import PrintRedirector
+from .output_format import clean_from_unknown_characters, collapse_sections
 import os
 import time
 import subprocess
@@ -63,8 +64,9 @@ class HardwareTester(object):
             pr.head.sha, "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"])
         print(end_text)
 
+        co = collapse_sections(result["output"])
         pr.create_issue_comment(
-            "%s\n<details>\n<summary>Output</summary>\n\n```\n%s\n```" % (end_text, result["output"]))
+            "%s\n%s" % (end_text, co))
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
 
