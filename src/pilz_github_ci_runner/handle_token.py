@@ -1,4 +1,5 @@
 import keyring
+from getpass import getpass
 
 
 def set_token():

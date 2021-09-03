@@ -52,7 +52,6 @@ import docopt
 import contextlib
 
 from pathlib import Path
-from getpass import getpass
 from github.GithubException import RateLimitExceededException, UnknownObjectException, GithubException
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
