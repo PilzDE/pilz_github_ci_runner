@@ -38,7 +38,13 @@ def create_code_blocks(output):
 
 
 def crop_output_to_max_length(output):
-    while len(output) > GITHUB_OUTPUT_CAP:
-        output = re.sub(
-            r'(?<=<\/summary>)(((?!<\/details>).)*\n)+', "", output, count=1)
-    return output
+    REMOVED_MSG = "\nREMOVED SOME LINES FROM OUTPUT TO COMPLY TO COMMENT MAX LENGTH!"
+    deleted = False
+    while len(output) > GITHUB_OUTPUT_CAP - len(REMOVED_MSG):
+        deleted = True
+        output, number_ob_subs = re.subn(
+            r'(?<=<\/summary>)(((?!<\/details>).)*\n)+', "...", output, count=1)
+        if number_ob_subs == 0:
+            return("Could not comply to comment max lenth by erasing section connent for some reason."
+                   "\nPlease check the CI log for further information.")
+    return output + REMOVED_MSG if deleted else output
