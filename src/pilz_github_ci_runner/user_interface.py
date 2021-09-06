@@ -30,7 +30,7 @@ def ask_user_for_pr_to_check(testable_prs: Sequence) -> Sequence:
 def _print_prs_that_are_ready_for_testing(testable_prs):
     print("Pull Requests ready for Testing:")
     for n, tp in enumerate(testable_prs):
-        print("  %s) %s" % (n, tp.status_report()))
+        print(f"  {n}) {tp.status_report()}")
 
 
 def _let_the_user_select_prs(testable_prs):
