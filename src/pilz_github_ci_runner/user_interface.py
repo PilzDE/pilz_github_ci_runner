@@ -15,9 +15,10 @@
 
 import contextlib
 from typing import Sequence
+from .github_pr_analyzer import PullRequestValidator
 
 
-def ask_user_for_pr_to_check(testable_prs: Sequence) -> Sequence:
+def ask_user_for_pr_to_check(testable_prs: Sequence[PullRequestValidator]) -> Sequence[PullRequestValidator]:
     print("")
     if len(testable_prs) > 0:
         _print_prs_that_are_ready_for_testing(testable_prs)
@@ -27,20 +28,20 @@ def ask_user_for_pr_to_check(testable_prs: Sequence) -> Sequence:
     return _let_the_user_select_prs(testable_prs)
 
 
-def _print_prs_that_are_ready_for_testing(testable_prs):
+def _print_prs_that_are_ready_for_testing(testable_prs: Sequence[PullRequestValidator]):
     print("Pull Requests ready for Testing:")
     for n, tp in enumerate(testable_prs):
         print(f"  {n}) {tp.status_report()}")
 
 
-def _let_the_user_select_prs(testable_prs):
+def _let_the_user_select_prs(testable_prs: Sequence[PullRequestValidator]) -> Sequence[PullRequestValidator]:
     print("\nPlease select tests to execute (comma separated, with 'ID' or '#NR'): ")
     prs_to_check = _get_selected_prs(input().split(","), testable_prs)
     print("Will test PRs: %s" % prs_to_check)
     return prs_to_check
 
 
-def _get_selected_prs(selection, testable_prs):
+def _get_selected_prs(selection: Sequence[str], testable_prs: Sequence[PullRequestValidator]) -> Sequence[PullRequestValidator]:
     prs_to_check = []
     for p in selection:
         with contextlib.suppress((IndexError, ValueError)):

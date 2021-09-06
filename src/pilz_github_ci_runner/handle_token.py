@@ -16,7 +16,7 @@ def set_token():
     return token
 
 
-def get_token(no_keyring):
+def get_token(no_keyring: bool):
     if no_keyring:
         return getpass(prompt='personal access token:')
     else:

@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import github
+from typing import Sequence
 from collections import namedtuple
 from github.PullRequest import PullRequest
 
@@ -21,8 +22,12 @@ ENABLE_TEXT = "- [ ] Perform hardware tests"
 ALLOW_TEXT = "Allow hw-tests up to commit "
 
 
+RepoHandler = namedtuple(
+    "RepoHandler", ["repo", "allowed_users", "test_bot_account"])
+
+
 class PullRequestValidator(PullRequest):
-    def validate(self, allowed_users, test_bot_account):
+    def validate(self, allowed_users: Sequence[str], test_bot_account: str):
         self.is_internal = self._is_internal()
         self.head_commit_is_allowed = self._head_commit_is_allowed_by_comment(
             allowed_users)
@@ -50,29 +55,29 @@ class PullRequestValidator(PullRequest):
             if c.user.login in allowed_users and c.body.find(ALLOW_TEXT + self.head.sha) != -1:
                 return True
 
-    def _tested(self, test_bot_account):
+    def _tested(self, test_bot_account: str):
         for c in self.get_issue_comments():
             if c.user.login == test_bot_account \
-               and c.body.startswith("Finished test of %s" % self.head.sha):
+               and c.body.startswith(f"Finished test of {self.head.sha}"):
                 return True
         return False
 
     def status_report(self, long=False) -> str:
-        title = "PR #%s %s" % (self.number, self.title30())
+        title = f"PR #{self.number} {self.title30()}"
         enabled = "enabled" if self.requests_tests else "disabled"
         origin = "Changes are internal" if self.is_internal else \
                  "External changes are accepted" if self.head_commit_is_allowed else \
                  "Has unaccepted external changes"
         tested = "(Untested)" if self.head_is_untested else "(No untested changes)"
-        return "%s Testing %s. %s. %s" % (title, enabled, origin, tested) if long else "%s %s" % (title, tested)
+        return f"{title} Testing {enabled}. {origin}. {tested}" if long else f"{title} {tested}"
 
     def title30(self):
         return (self.title[:28].rstrip() + ".." if len(self.title) > 30 else self.title).ljust(30)
 
 
-def get_testable_pull_requests(repo_handler):
+def get_testable_pull_requests(repo_handler: RepoHandler):
     testable_pull_requests = []
-    print("%s\nSearching for PRs to test.\n" % (">"*50))
+    print(f"{'>'*50}\nSearching for PRs to test.\n" % ())
     for pr in repo_handler.repo.get_pulls():
         pr.__class__ = PullRequestValidator
         pr.validate(repo_handler.allowed_users, repo_handler.test_bot_account)
@@ -83,8 +88,8 @@ def get_testable_pull_requests(repo_handler):
     return testable_pull_requests
 
 
-def create_repo_handler(token, repo_name, allowed_users):
+def create_repo_handler(token, repo_name: str, allowed_users: Sequence[str]):
     gh = github.Github(token)
     test_bot_account = gh.get_user().login
     repo = gh.get_repo(repo_name)
-    return namedtuple("RepoHandler", ["repo", "allowed_users", "test_bot_account"])(repo, allowed_users, test_bot_account)
+    return RepoHandler(repo, allowed_users, test_bot_account)
