@@ -15,7 +15,9 @@
 
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from github.PullRequest import PullRequest
 from .print_redirector import PrintRedirector
+from .output_format import clean_from_unknown_characters, collapse_sections
 import os
 import time
 import subprocess
@@ -27,7 +29,6 @@ class HardwareTester(object):
         self._token = token
         self._log_dir = log_dir
         self._env = gather_ci_environment_variables(ci_args)
-        print("CI Environment:", self._env)
         self._setup_cmd = setup_cmd
         self._cleanup_cmd = cleanup_cmd
 
@@ -39,7 +40,7 @@ class HardwareTester(object):
         return "%s_%s.log" % (list(pr.get_commits())[-1].sha,
                               time.strftime("(%Y%b%d_%H:%M:%S)", time.localtime()))
 
-    def check_pr(self, pr):
+    def check_pr(self, pr: PullRequest):
         repo = pr.base.repo
         print("Starting test of PR #%s" % pr.number)
         pr.create_issue_comment("Starting a test for %s" % pr.head.sha)
@@ -63,8 +64,9 @@ class HardwareTester(object):
             pr.head.sha, "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"])
         print(end_text)
 
+        co = collapse_sections(result["output"])
         pr.create_issue_comment(
-            "%s\n<details>\n<summary>Output</summary>\n\n```\n%s\n```" % (end_text, result["output"]))
+            "%s\n%s" % (end_text, co))
         if self._cleanup_cmd:
             run_command(self._cleanup_cmd)
 
@@ -94,7 +96,6 @@ def run_command(command, **kwargs):
 
 
 def run_tests(dir, env):
-    print(env)
     # Needs sources ROS and path to industrial_ci
     command = 'rosrun industrial_ci run_ci'
     print('Running {}'.format(command))

@@ -18,12 +18,11 @@ from typing import Sequence
 
 
 def ask_user_for_pr_to_check(testable_prs: Sequence) -> Sequence:
-    print("="*30)
+    print("")
     if len(testable_prs) > 0:
         _print_prs_that_are_ready_for_testing(testable_prs)
     else:
         print("No Pullrequests ready to test.")
-        print("="*30)
         return []
     return _let_the_user_select_prs(testable_prs)
 
@@ -31,7 +30,7 @@ def ask_user_for_pr_to_check(testable_prs: Sequence) -> Sequence:
 def _print_prs_that_are_ready_for_testing(testable_prs):
     print("Pull Requests ready for Testing:")
     for n, tp in enumerate(testable_prs):
-        print("  %s) #%s - %s" % (n, tp.number, tp.title))
+        print(f"  {n}) {tp.status_report()}")
 
 
 def _let_the_user_select_prs(testable_prs):

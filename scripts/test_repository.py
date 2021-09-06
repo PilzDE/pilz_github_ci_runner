@@ -41,7 +41,7 @@ Options:
 """
 
 
-from pilz_github_ci_runner import get_testable_pull_requests, ask_user_for_pr_to_check, HardwareTester
+from pilz_github_ci_runner import *
 from pilz_github_ci_runner.print_redirector import PrintRedirector
 
 import os
@@ -49,49 +49,25 @@ import sys
 import time
 import shlex
 import docopt
-import github
 import contextlib
-import keyring
 
 from pathlib import Path
-from getpass import getpass
-from github.GithubException import RateLimitExceededException, UnknownObjectException
+from github.GithubException import RateLimitExceededException, UnknownObjectException, GithubException
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 
-def set_token():
-    token = None
-    while not token:
-        print(
-            "Please provide a GitHub personal access token with 'public_repo' permission.")
-        new_token = getpass(prompt='personal access token:')
-        keyring.set_password(
-            'system', 'github-hardware-tester-token', new_token)
-        token = keyring.get_password('system', 'github-hardware-tester-token')
-        if not token:
-            print("There was an issue storing the token in the keyring!")
-    return token
+DESCRIPTION = """
+    To enable Testing in a PullRequest(PR) add '- [ ] Perform hardware tests' to your PR description.
 
+    Only internal PRs will be tested by default.
+    To allow testing on PRs from forks, a User in the ALLOWED_USERS list has to accept the head commit of this PR.
+    To allow the head commit write a comment with: 'Allow hw-tests up to commit [sha]'
+        [sha] has to equal the full sha of the last commit in this PR.
 
-def get_token():
-    keyring.set_keyring(
-        keyring.backends.SecretService.Keyring())  # For Ubuntu 20
-    token = keyring.get_password('system', 'github-hardware-tester-token')
-    if not token:
-        token = set_token()
-    return token
+    For further Information see https://github.com/PilzDE/pilz_testutils/pilz_github_ci_runner.
 
-
-def check_and_execute_loop(loop_time):
-    while True:
-        start = time.time()
-        tester.check_prs(get_testable_pull_requests(
-            repo, allowed_users, test_bot_account))
-        end = time.time()
-        remain = int(loop_time) - (end - start)
-        if remain > 0:
-            time.sleep(remain)
+"""
 
 
 def parse_ci_args(cias):
@@ -103,63 +79,60 @@ def parse_ci_args(cias):
     return ci_env
 
 
+def check_and_execute_loop(loop_time, rh):
+    while True:
+        start = time.time()
+        test_prs(rh, manually=False)
+        end = time.time()
+        remain = int(loop_time) - (end - start)
+        if remain > 0:
+            time.sleep(remain)
+
+
+def test_prs(rh, manually=True):
+    try:
+        testable_prs = get_testable_pull_requests(rh)
+        if manually:
+            tester.check_prs(ask_user_for_pr_to_check(testable_prs))
+        else:
+            for p in testable_prs:
+                if p.head_is_untested:
+                    tester.check_pr(p)
+    except RateLimitExceededException:
+        print("Reached a rate limit on Github please try again later.")
+    except GithubException:
+        print("An unspecified Exception from Github had occured.")
+
+
 if __name__ == "__main__":
     arguments = docopt.docopt(__doc__)
     print(arguments, "\n")
+    print(DESCRIPTION)
 
     if arguments.get('set-token'):
-        if set_token():
-            exit(1)
-        else:
-            exit(0)
+        exit(1) if set_token() else exit(0)
 
-    if arguments.get('--no-keyring'):
-        token = getpass(prompt='personal access token:')
-    else:
-        token = get_token()
+    token = get_token(no_keyring=arguments.get('--no-keyring'))
 
+    allowed_users = shlex.split(arguments.get("ALLOWED_USERS"))
     try:
-        gh = github.Github(token)
-        test_bot_account = gh.get_user().login
-        repo = gh.get_repo(arguments.get("REPO"))
+        rh = create_repo_handler(token, arguments.get("REPO"), allowed_users)
     except UnknownObjectException:
         print("Repository not found! Please check the spelling of the REPO argument")
         exit(1)
 
-    allowed_users = shlex.split(arguments.get("ALLOWED_USERS"))
     log_dir = os.path.expanduser(arguments.get("--log"))
     loop_time = arguments.get("--loop-time", None)
-    setup_cmd = arguments.get("--setup-cmd")
-    cleanup_cmd = arguments.get("--cleanup-cmd")
 
-    ci_args = parse_ci_args(arguments.get("CI_ARGS"))
-
-    tester = HardwareTester(ci_args=ci_args,
+    tester = HardwareTester(ci_args=parse_ci_args(arguments.get("CI_ARGS")),
                             token=token,
                             log_dir=log_dir,
-                            setup_cmd=setup_cmd,
-                            cleanup_cmd=cleanup_cmd)
-
-    desciption = """
-    To enable Testing in a PullRequest(PR) add '- [ ] Perform hardware tests' to your PR description.
-
-    Only internal PRs will be tested by default.
-    To allow testing on PRs from forks, a User in the ALLOWED_USERS list has to accept the head commit of this PR.
-    To allow the head commit write a comment with: 'Allow hw-tests up to commit [sha]'
-        [sha] has to equal the full sha of the last commit in this PR.
-
-    For further Information see https://github.com/PilzDE/pilz_testutils/pilz_github_ci_runner.
-
-    """
-    print(desciption)
+                            setup_cmd=arguments.get("--setup-cmd"),
+                            cleanup_cmd=arguments.get("--cleanup-cmd"))
 
     with contextlib.suppress(KeyboardInterrupt):
-        try:
-            with PrintRedirector(Path(log_dir) / Path("stdout.log")):
-                if not loop_time:
-                    tester.check_prs(ask_user_for_pr_to_check(
-                        get_testable_pull_requests(repo, allowed_users, test_bot_account)))
-                else:
-                    check_and_execute_loop(loop_time)
-        except RateLimitExceededException:
-            print("Reached a rate limit on Github please try again later.")
+        with PrintRedirector(Path(log_dir) / Path("stdout.log")):
+            if not loop_time:
+                test_prs(rh)
+            else:
+                check_and_execute_loop(loop_time, rh)
