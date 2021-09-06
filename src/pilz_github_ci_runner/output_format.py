@@ -2,31 +2,39 @@ import re
 GITHUB_OUTPUT_CAP = 262144
 
 
-def collapse_sections(output):
-    output = clean_from_unknown_characters(output)
-    output = create_sections(output)
-    output = create_code_blocks(output)
-    output = crop_output_to_max_length(output)
-    return "<details>\n<summary>Output</summary>\n\n%s\n</details>" % output
+def collapse_sections(output: str) -> str:
+    """ Add github collapse sections for the ci output """
+    output = _clean_from_unknown_characters(output)
+    output = _collapse_ci_main_sections(output)
+    output = _colorize_results(output)
+    output = _add_codeblocks_for_test_output(output)
+    output = _crop_output_to_comment_max_length(output)
+    return f"<details>\n<summary>Output</summary>\n\n{output}\n</details>"
 
 
-def clean_from_unknown_characters(output: str):
+def _clean_from_unknown_characters(output: str) -> str:
     output = re.sub(r'\[\d*(m|K)', "", output)
     output = re.sub(r'', "\n   ", output)
     return re.sub(r'', "", output)
 
 
-def create_sections(output):
+def _collapse_ci_main_sections(output: str) -> str:
     output = re.sub(r'>{62}', "<details><summary>", output)
     output = re.sub(r'<{62}', "</details>\n", output)
-    return create_summary_end_and_colorize_result(output)
+    return _add_collapse_title_ends(output)
 
 
-def create_summary_end_and_colorize_result(output):
+def _add_collapse_title_ends(output: str) -> str:
     lines = output.splitlines(keepends=True)
     for i, l in enumerate(lines):
         if "<summary>" in l:
             lines[i+1] += "</summary>\n\n"
+    return "".join(lines)
+
+
+def _colorize_results(output: str) -> str:
+    lines = output.splitlines(keepends=True)
+    for i, l in enumerate(lines):
         if "returned with code '" in l:
             lines[i] = "```diff\n%s%s\n```\n" % (
                 "+" if "code '0'" in l else "-", l)
@@ -36,11 +44,11 @@ def create_summary_end_and_colorize_result(output):
     return "".join(lines)
 
 
-def create_code_blocks(output):
+def _add_codeblocks_for_test_output(output: str) -> str:
     return re.sub(r'\n---', "\n\n```\n\n", output)
 
 
-def crop_output_to_max_length(output):
+def _crop_output_to_comment_max_length(output: str) -> str:
     REMOVED_MSG = "\nREMOVED SOME LINES FROM OUTPUT TO COMPLY TO COMMENT MAX LENGTH!"
     deleted = False
     while len(output) > GITHUB_OUTPUT_CAP - len(REMOVED_MSG):

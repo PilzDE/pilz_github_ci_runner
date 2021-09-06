@@ -13,72 +13,78 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Sequence
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from github.PullRequest import PullRequest
 from .print_redirector import PrintRedirector
-from .output_format import clean_from_unknown_characters, collapse_sections
+from .output_format import collapse_sections
 import os
 import time
 import subprocess
 
 
 class HardwareTester(object):
-    def __init__(self, token, log_dir, ci_args, setup_cmd, cleanup_cmd, *args, **kwargs):
+    """ This Class fetches the sources, runs the industrial ci and reports back the result to the PullRequest.
+    """
+
+    def __init__(self, token: str, log_dir: str, ci_args: {}, setup_cmd: str, cleanup_cmd: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._token = token
         self._log_dir = log_dir
-        self._env = gather_ci_environment_variables(ci_args)
+        self._env = _gather_ci_environment_variables(ci_args)
         self._setup_cmd = setup_cmd
         self._cleanup_cmd = cleanup_cmd
 
-    def check_prs(self, prs_to_check):
+    def check_prs(self, prs_to_check: Sequence[PullRequest]):
+        """ Runs the CI for several PullRequest objects """
         for pr in prs_to_check:
             self.check_pr(pr)
 
-    def _get_log_file_name(self, pr) -> str:
-        return "%s_%s.log" % (list(pr.get_commits())[-1].sha,
-                              time.strftime("(%Y%b%d_%H:%M:%S)", time.localtime()))
-
     def check_pr(self, pr: PullRequest):
+        """ Fetches a PullRequest and runs the industrial CI for it. """
         repo = pr.base.repo
-        print("Starting test of PR #%s" % pr.number)
-        pr.create_issue_comment("Starting a test for %s" % pr.head.sha)
+        print(f"Starting test of PR #{pr.number}")
+        pr.create_issue_comment(f"Starting a test for {pr.head.sha}")
         if self._setup_cmd:
-            run_command(self._setup_cmd)
+            _run_command(self._setup_cmd)
         with PrintRedirector(Path(self._log_dir) / Path(self._get_log_file_name(pr))):
             with TemporaryDirectory() as t:
-                run_command(
-                    "git clone https://%s@github.com/%s.git" % (self._token, repo.full_name), cwd=t)
+                _run_command(
+                    f"git clone https://{self._token}@github.com/{repo.full_name}.git", cwd=t)
                 repo_dir = os.path.join(t, repo.name)
-                run_command(
+                _run_command(
                     "git config advice.detachedHead false", cwd=repo_dir)
-                run_command(
-                    "git fetch origin pull/%s/merge" % pr.number, cwd=repo_dir)
-                run_command(
+                _run_command(
+                    f"git fetch origin pull/{pr.number}/merge", cwd=repo_dir)
+                _run_command(
                     "git checkout FETCH_HEAD", cwd=repo_dir)
                 result = run_tests(
                     repo_dir, self._env)
 
-        end_text = "Finished test of %s: %s" % (
-            pr.head.sha, "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"])
+        result_msg = "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"]
+        end_text = f"Finished test of {pr.head.sha}: {result_msg}"
         print(end_text)
 
         co = collapse_sections(result["output"])
-        pr.create_issue_comment(
-            "%s\n%s" % (end_text, co))
+        pr.create_issue_comment(f"{end_text}\n{co}")
         if self._cleanup_cmd:
-            run_command(self._cleanup_cmd)
+            _run_command(self._cleanup_cmd)
+
+    def _get_log_file_name(self, pr: PullRequest) -> str:
+        head_commit = list(pr.get_commits())[-1].sha
+        t = time.strftime("(%Y%b%d_%H:%M:%S)", time.localtime())
+        return f"{head_commit}_{t}.log"
 
 
-def gather_ci_environment_variables(ci_args):
+def _gather_ci_environment_variables(ci_args: {}) -> {}:
     relevant_env = os.environ.copy()
     relevant_env.update(ci_args)
     return relevant_env
 
 
-def run_command(command, **kwargs):
-    print("\n%s\nExecuting: %s\n" % (">"*50, command))
+def _run_command(command: str, **kwargs):
+    print(f"\n{'>'*50}\nExecuting: {command}\n")
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, shell=True, **kwargs)
     full_output = ""
@@ -95,8 +101,12 @@ def run_command(command, **kwargs):
     return {"return_code": return_code, "output": full_output}
 
 
-def run_tests(dir, env):
-    # Needs sources ROS and path to industrial_ci
+def run_tests(dir, env: {}):
+    """ Runs the industrial CI on a ros package directory.
+        Needs ROS and industrial CI sourced.
+
+        :param dir: Path to the ros package to test
+    """
     command = 'rosrun industrial_ci run_ci'
     print('Running {}'.format(command))
-    return run_command(command, env=env, cwd=os.path.expanduser(dir))
+    return _run_command(command, env=env, cwd=os.path.expanduser(dir))
