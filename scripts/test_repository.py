@@ -52,7 +52,7 @@ import docopt
 import contextlib
 
 from pathlib import Path
-from github.GithubException import RateLimitExceededException, UnknownObjectException, GithubException
+from github.GithubException import UnknownObjectException
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
@@ -79,31 +79,6 @@ def parse_ci_args(cias):
     return ci_env
 
 
-def check_and_execute_loop(loop_time, rh):
-    while True:
-        start = time.time()
-        test_prs(rh, manually=False)
-        end = time.time()
-        remain = int(loop_time) - (end - start)
-        if remain > 0:
-            time.sleep(remain)
-
-
-def test_prs(rh, manually=True):
-    try:
-        testable_prs = get_testable_pull_requests(rh)
-        if manually:
-            tester.check_prs(ask_user_for_pr_to_check(testable_prs))
-        else:
-            for p in testable_prs:
-                if p.head_is_untested:
-                    tester.check_pr(p)
-    except RateLimitExceededException:
-        print("Reached a rate limit on Github please try again later.")
-    except GithubException:
-        print("An unspecified Exception from Github had occured.")
-
-
 if __name__ == "__main__":
     arguments = docopt.docopt(__doc__)
     print(arguments, "\n")
@@ -115,24 +90,25 @@ if __name__ == "__main__":
     token = get_token(no_keyring=arguments.get('--no-keyring'))
 
     allowed_users = shlex.split(arguments.get("ALLOWED_USERS"))
-    try:
-        rh = create_repo_handler(token, arguments.get("REPO"), allowed_users)
-    except UnknownObjectException:
-        print("Repository not found! Please check the spelling of the REPO argument")
-        exit(1)
 
     log_dir = os.path.expanduser(arguments.get("--log"))
-    loop_time = arguments.get("--loop-time", None)
-
     tester = HardwareTester(ci_args=parse_ci_args(arguments.get("CI_ARGS")),
                             token=token,
                             log_dir=log_dir,
                             setup_cmd=arguments.get("--setup-cmd"),
                             cleanup_cmd=arguments.get("--cleanup-cmd"))
 
+    try:
+        check_executor = PRCheckExecutor(token, arguments.get("REPO"), allowed_users, tester)
+    except UnknownObjectException:
+        print("Repository not found! Please check the spelling of the REPO argument")
+        exit(1)
+
+    loop_time = arguments.get("--loop-time", None)
+
     with contextlib.suppress(KeyboardInterrupt):
         with PrintRedirector(Path(log_dir) / Path("stdout.log")):
             if not loop_time:
-                test_prs(rh)
+                check_executor.test_prs()
             else:
-                check_and_execute_loop(loop_time, rh)
+                check_executor.check_and_execute_loop(loop_time)

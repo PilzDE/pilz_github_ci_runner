@@ -73,23 +73,3 @@ class PullRequestValidator(PullRequest):
 
     def title30(self):
         return (self.title[:28].rstrip() + ".." if len(self.title) > 30 else self.title).ljust(30)
-
-
-def get_testable_pull_requests(repo_handler: RepoHandler):
-    testable_pull_requests = []
-    print(f"{'>'*50}\nSearching for PRs to test.\n" % ())
-    for pr in repo_handler.repo.get_pulls():
-        pr.__class__ = PullRequestValidator
-        pr.validate(repo_handler.allowed_users, repo_handler.test_bot_account)
-        print(pr.status_report(long=True))
-        if pr.is_valid():
-            testable_pull_requests.append(pr)
-    print("<"*50)
-    return testable_pull_requests
-
-
-def create_repo_handler(token, repo_name: str, allowed_users: Sequence[str]):
-    gh = github.Github(token)
-    test_bot_account = gh.get_user().login
-    repo = gh.get_repo(repo_name)
-    return RepoHandler(repo, allowed_users, test_bot_account)

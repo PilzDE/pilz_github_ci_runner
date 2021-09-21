@@ -56,6 +56,6 @@ def _crop_output_to_comment_max_length(output: str) -> str:
         output, number_ob_subs = re.subn(
             r'(?<=<\/summary>)(((?!<\/details>).)*\n)+', "...", output, count=1)
         if number_ob_subs == 0:
-            return("Could not comply to comment max lenth by erasing section connent for some reason."
+            return("Could not comply to comment max length by erasing section content for some reason."
                    "\nPlease check the CI log for further information.")
     return output + REMOVED_MSG if deleted else output
