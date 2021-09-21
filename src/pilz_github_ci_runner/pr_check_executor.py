@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import github
+import time
 from collections import namedtuple
 from typing import Sequence
 from github.GithubException import RateLimitExceededException, GithubException
