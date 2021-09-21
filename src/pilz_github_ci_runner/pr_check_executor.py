@@ -14,10 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import github
+import time
 from collections import namedtuple
 from typing import Sequence
 from github.GithubException import RateLimitExceededException, GithubException
-from http.client import RemoteDisconnected
+from requests.exceptions import ConnectionError
 from pilz_github_ci_runner.pull_request_validator import PullRequestValidator
 from pilz_github_ci_runner.hardware_tester import HardwareTester
 from pilz_github_ci_runner.user_interface import ask_user_for_pr_to_check
@@ -62,7 +63,7 @@ class PRCheckExecutor(object):
             print("Reached a rate limit on Github please try again later.")
         except GithubException:
             print("An unspecified Exception from Github had occured.")
-        except RemoteDisconnected:
+        except ConnectionError:
             print("Remote client disconnected unexpectedly. Please retry again later.")
             self.__create_repo_handler()
 
