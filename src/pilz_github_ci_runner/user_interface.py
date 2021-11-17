@@ -15,7 +15,7 @@
 
 import contextlib
 from typing import Sequence
-from .github_pr_analyzer import PullRequestValidator
+from pilz_github_ci_runner.pull_request_validator import PullRequestValidator
 
 
 def ask_user_for_pr_to_check(testable_prs: Sequence[PullRequestValidator]) -> Sequence[PullRequestValidator]:
