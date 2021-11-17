@@ -22,6 +22,7 @@ from .output_format import collapse_sections
 import os
 import time
 import subprocess
+import yaml
 
 
 class HardwareTester(object):
@@ -61,6 +62,7 @@ class HardwareTester(object):
                     f"git fetch origin pull/{pr.number}/merge", cwd=repo_dir)
                 _run_command(
                     "git checkout FETCH_HEAD", cwd=repo_dir)
+                _extend_env_from_config_file(repo_dir, self._env)
                 result = run_tests(
                     repo_dir, self._env)
 
@@ -102,6 +104,17 @@ def _run_command(command: str, **kwargs):
     return_code = process.poll()
     print("<"*50)
     return {"return_code": return_code, "output": full_output}
+
+
+def _extend_env_from_config_file(repo_dir, env: {}):
+    config_file = repo_dir + "/.pilz_github_ci_runner.yml"
+    try:
+        with open(config_file, 'r') as f:
+            config = yaml.safe_load(f)
+            env['ROS_DISTRO'] = config['ROS_DISTRO']  # Only ROS_DISTRO allowed
+    except:
+        # Ignore if no file is given. Default given at start of runner will be used. Needed for backward compatibility.
+        pass
 
 
 def run_tests(dir, env: {}):

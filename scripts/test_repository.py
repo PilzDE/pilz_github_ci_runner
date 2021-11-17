@@ -67,6 +67,11 @@ DESCRIPTION = """
     To allow the head commit write a comment with: 'Allow hw-tests up to commit [sha]'
         [sha] has to equal the full sha of the last commit in this PR.
 
+    You can specify the ROS_DISTRO by creating a file .pilz_github_ci_runner.yml containing the line
+    ROS_DISTRO: <your_distro>
+    at the root of your project.
+
+
     For further Information see https://github.com/PilzDE/pilz_testutils/pilz_github_ci_runner.
 
 """
