@@ -28,13 +28,14 @@ class HardwareTester(object):
     """ This Class fetches the sources, runs the industrial ci and reports back the result to the PullRequest.
     """
 
-    def __init__(self, token: str, log_dir: str, ci_args: {}, setup_cmd: str, cleanup_cmd: str, *args, **kwargs):
+    def __init__(self, token: str, log_dir: str, ci_args: {}, setup_cmd: str, cleanup_cmd: str, dry_run: bool, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._token = token
         self._log_dir = log_dir
         self._env = _gather_ci_environment_variables(ci_args)
         self._setup_cmd = setup_cmd
         self._cleanup_cmd = cleanup_cmd
+        self._dry_run = dry_run
 
     def check_prs(self, prs_to_check: Sequence[PullRequest]):
         """ Runs the CI for several PullRequest objects """
@@ -45,7 +46,8 @@ class HardwareTester(object):
         """ Fetches a PullRequest and runs the industrial CI for it. """
         repo = pr.base.repo
         print(f"Starting test of PR #{pr.number}")
-        pr.create_issue_comment(f"Starting a test for {pr.head.sha}")
+        if not self._dry_run:
+            pr.create_issue_comment(f"Starting a test for {pr.head.sha}")
         if self._setup_cmd:
             _run_command(self._setup_cmd)
         with PrintRedirector(Path(self._log_dir) / Path(self._get_log_file_name(pr))):
@@ -67,7 +69,8 @@ class HardwareTester(object):
         print(end_text)
 
         co = collapse_sections(result["output"])
-        pr.create_issue_comment(f"{end_text}\n{co}")
+        if not self._dry_run:
+            pr.create_issue_comment(f"{end_text}\n{co}")
         if self._cleanup_cmd:
             _run_command(self._cleanup_cmd)
 

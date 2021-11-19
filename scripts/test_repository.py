@@ -24,6 +24,7 @@ Usage:
         [--cleanup-cmd=SETUP_CMD]
         [--loop-time=MIN_TIME_IN_SEC]
         [--no-keyring]
+        [--dry-run]
     pilz_github_ci_runner.py set-token
 
    Arguments for the CI can either be set as environment variables or passed as arguments.
@@ -38,6 +39,7 @@ Options:
     --loop-time=MIN_TIME_IN_SEC  If set automatically searches valid pull requests and executes the tests continuosly.
                                  The argument provided is the minimum repeat time of the loop in seconds.
     --no-keyring                 Will ask for the token directly, instead of using the keyring.
+    --dry-run                    Don't comment on the github pull requests. For testing purposes.
 """
 
 
@@ -96,10 +98,12 @@ if __name__ == "__main__":
                             token=token,
                             log_dir=log_dir,
                             setup_cmd=arguments.get("--setup-cmd"),
-                            cleanup_cmd=arguments.get("--cleanup-cmd"))
+                            cleanup_cmd=arguments.get("--cleanup-cmd"),
+                            dry_run=arguments.get("--dry-run"))
 
     try:
-        check_executor = PRCheckExecutor(token, arguments.get("REPO"), allowed_users, tester)
+        check_executor = PRCheckExecutor(
+            token, arguments.get("REPO"), allowed_users, tester)
     except UnknownObjectException:
         print("Repository not found! Please check the spelling of the REPO argument")
         exit(1)
