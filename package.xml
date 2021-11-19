@@ -18,4 +18,5 @@
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>python-github-pip</exec_depend>
   <exec_depend>python3-docopt</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
 </package>
