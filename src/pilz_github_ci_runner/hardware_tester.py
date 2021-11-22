@@ -62,9 +62,8 @@ class HardwareTester(object):
                     f"git fetch origin pull/{pr.number}/merge", cwd=repo_dir)
                 _run_command(
                     "git checkout FETCH_HEAD", cwd=repo_dir)
-                _extend_env_from_config_file(repo_dir, self._env)
                 result = run_tests(
-                    repo_dir, self._env)
+                    repo_dir, _extend_env_from_config_file(repo_dir, self._env))
 
         result_msg = "SUCCESSFULL" if not result["return_code"] else "WITH %s FAILURES" % result["return_code"]
         end_text = f"Finished test of {pr.head.sha}: {result_msg}"
@@ -106,15 +105,17 @@ def _run_command(command: str, **kwargs):
     return {"return_code": return_code, "output": full_output}
 
 
-def _extend_env_from_config_file(repo_dir, env: {}):
+def _extend_env_from_config_file(repo_dir, env: {}) -> {}:
+    extended_env = env.copy()
     config_file = repo_dir + "/.pilz_github_ci_runner.yml"
     try:
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
-            env['ROS_DISTRO'] = config['ROS_DISTRO']  # Only ROS_DISTRO allowed
+            extended_env['ROS_DISTRO'] = config['ROS_DISTRO']  # Only ROS_DISTRO allowed
     except:
         # Ignore if no file is given. Default given at start of runner will be used. Needed for backward compatibility.
         pass
+    return extended_env
 
 
 def run_tests(dir, env: {}):
