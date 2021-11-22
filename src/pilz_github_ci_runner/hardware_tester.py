@@ -106,7 +106,7 @@ def _run_command(command: str, **kwargs):
 
 
 def _extend_env_from_config_file(repo_dir, env: {}) -> {}:
-    extended_env = env
+    extended_env = env.copy()
     config_file = repo_dir + "/.pilz_github_ci_runner.yml"
     try:
         with open(config_file, 'r') as f:
